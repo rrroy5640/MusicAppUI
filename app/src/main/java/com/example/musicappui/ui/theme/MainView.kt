@@ -32,31 +32,42 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavAction
 import androidx.navigation.NavController
+import androidx.navigation.NavHost
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.musicappui.MainViewModel
+import com.example.musicappui.Navigation
 import com.example.musicappui.Screen
 import com.example.musicappui.screenInDrawer
+import com.example.musicappui.ui.theme.AccountDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainView() {
-
+    val viewModel: MainViewModel = viewModel()
+    val currentScreen = viewModel.currentScreen.value
     val scaffoldState: ScaffoldState = rememberScaffoldState()
     val scope: CoroutineScope = rememberCoroutineScope()
-    val navController: NavController = rememberNavController()
+    val navController: NavHostController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val title = remember{
-        mutableStateOf("")
+        mutableStateOf(currentScreen.title)
+    }
+    val dialogOpen = remember{
+        mutableStateOf(false)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "") },
+                title = { Text(text = title.value) },
                 navigationIcon = {
                     IconButton(onClick = {
                         scope.launch {
@@ -78,8 +89,9 @@ fun MainView() {
                             scope.launch {
                                 scaffoldState.drawerState.close()
                             }
-                            if (currentRoute == Screen.DrawScreen.AddAccount.route){
+                            if (it.route == Screen.DrawScreen.AddAccount.route){
                                 //show dialog
+                                dialogOpen.value = true
                             }else{
                                 navController.navigate(it.route)
                                 title.value = it.dTitle
@@ -92,7 +104,8 @@ fun MainView() {
 
         }
     ) {
-        Text(text = "Text", modifier = Modifier.padding(it))
+        Navigation(viewModel = viewModel, navController = navController, pd = it)
+        AccountDialog(dialogOpen = dialogOpen)
     }
 }
 
