@@ -3,21 +3,31 @@ package com.example.musicappui.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.Scaffold
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavAction
 import androidx.navigation.NavController
@@ -44,6 +55,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.musicappui.MainViewModel
 import com.example.musicappui.Navigation
+import com.example.musicappui.R
 import com.example.musicappui.Screen
 import com.example.musicappui.screenInBottom
 import com.example.musicappui.screenInDrawer
@@ -51,7 +63,7 @@ import com.example.musicappui.ui.theme.AccountDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun MainView() {
     val viewModel: MainViewModel = viewModel()
@@ -61,6 +73,14 @@ fun MainView() {
     val navController: NavHostController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val isSheetFullScreen by remember {
+        mutableStateOf(false)
+    }
+    val modifier = if (isSheetFullScreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
+    val modalSheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        confirmValueChange = { it != ModalBottomSheetValue.HalfExpanded })
+    val roundedCornerRadius = if (isSheetFullScreen) 0.dp else 12.dp
     val title = remember {
         mutableStateOf(currentScreen.title)
     }
@@ -72,16 +92,20 @@ fun MainView() {
         if (currentScreen is Screen.DrawScreen || currentScreen == Screen.BottomScreen.Home) {
             BottomNavigation(modifier = Modifier.wrapContentSize()) {
                 screenInBottom.forEach {
+                    val selected = (currentRoute == it.bRoute)
+                    val tint = if (selected) Color.White else Color.Black
                     BottomNavigationItem(
                         selected = (currentRoute == it.bTitle),
-                        onClick = { navController.navigate(it.bRoute) },
+                        onClick = { navController.navigate(it.bRoute)
+                                  title.value = it.bTitle},
                         icon = {
                             Icon(
+                                tint = tint,
                                 painter = painterResource(id = it.icon),
                                 contentDescription = it.bTitle
                             )
                         },
-                        label = { Text(text = it.bTitle) },
+                        label = { Text(text = it.bTitle, color = tint) },
                         selectedContentColor = Color.White,
                         unselectedContentColor = Color.Black
                     )
@@ -90,51 +114,80 @@ fun MainView() {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = title.value) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            scaffoldState.drawerState.open()
+    ModalBottomSheetLayout(
+        sheetState = modalSheetState,
+        sheetShape = RoundedCornerShape(
+            topStart = roundedCornerRadius,
+            topEnd = roundedCornerRadius
+        ),
+        sheetContent = {
+            MoreBottomSheet(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxWidth(),
+            )
+        }) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = title.value) },
+                    actions = { IconButton(onClick = {
+                        scope.launch{
+                            if (modalSheetState.isVisible){
+                                modalSheetState.hide()
+                            }else{
+                                modalSheetState.show()
+                            }
                         }
                     }) {
-                        Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "")
+                    }},
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            scope.launch {
+                                scaffoldState.drawerState.open()
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                )
+            },
+            bottomBar = bottomBar,
+            scaffoldState = scaffoldState,
+            drawerContent = {
+                LazyColumn(modifier = Modifier.padding(16.dp)) {
+                    items(screenInDrawer) {
+                        DrawerItem(
+                            selected = (currentRoute == it.route),
+                            onClicked = {
+                                scope.launch {
+                                    scaffoldState.drawerState.close()
+                                }
+                                if (it.route == Screen.DrawScreen.AddAccount.route) {
+                                    //show dialog
+                                    dialogOpen.value = true
+                                } else {
+                                    navController.navigate(it.route)
+                                    title.value = it.dTitle
+                                }
+                            },
+                            item = it
+                        )
                     }
                 }
-            )
-        },
-        bottomBar = bottomBar
-        ,
-        scaffoldState = scaffoldState,
-        drawerContent = {
-            LazyColumn(modifier = Modifier.padding(16.dp)) {
-                items(screenInDrawer) {
-                    DrawerItem(
-                        selected = (currentRoute == it.route),
-                        onClicked = {
-                            scope.launch {
-                                scaffoldState.drawerState.close()
-                            }
-                            if (it.route == Screen.DrawScreen.AddAccount.route) {
-                                //show dialog
-                                dialogOpen.value = true
-                            } else {
-                                navController.navigate(it.route)
-                                title.value = it.dTitle
-                            }
-                        },
-                        item = it
-                    )
-                }
-            }
 
+            }
+        ) {
+            Navigation(viewModel = viewModel, navController = navController, pd = it)
+            AccountDialog(dialogOpen = dialogOpen)
         }
-    ) {
-        Navigation(viewModel = viewModel, navController = navController, pd = it)
-        AccountDialog(dialogOpen = dialogOpen)
     }
+
+
 }
 
 @Composable
@@ -164,8 +217,23 @@ fun DrawerItem(
     }
 }
 
-@Preview
 @Composable
-fun MainViewPreview() {
-    MainView()
+fun MoreBottomSheet(modifier: Modifier) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp)
+            .background(MaterialTheme.colors.primary)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    modifier = Modifier.padding(end = 8.dp),
+                    painter = painterResource(id = R.drawable.baseline_settings_24),
+                    contentDescription = "setting"
+                )
+                Text(text = "Setting", fontSize = 20.sp, color = Color.White)
+            }
+        }
+    }
 }
