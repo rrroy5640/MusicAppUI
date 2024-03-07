@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.musicappui.ui.theme.AccountDialog
 import com.example.musicappui.ui.theme.AccountView
+import com.example.musicappui.ui.theme.HomeView
 import com.example.musicappui.ui.theme.Subscription
 
 @Composable
@@ -23,8 +24,17 @@ fun Navigation(viewModel: ViewModel, navController: NavHostController, pd: Paddi
         composable(route = Screen.DrawScreen.Subscription.route) {
             Subscription()
         }
-        composable(route = Screen.DrawScreen.Account.route){
+        composable(route = Screen.DrawScreen.Account.route) {
             AccountView()
+        }
+        composable(route = Screen.BottomScreen.Home.route) {
+            HomeView()
+        }
+        composable(route = Screen.BottomScreen.Library.route) {
+
+        }
+        composable(route = Screen.BottomScreen.Browse.route) {
+
         }
     }
 }
