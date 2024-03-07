@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.ScaffoldState
@@ -42,6 +45,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.musicappui.MainViewModel
 import com.example.musicappui.Navigation
 import com.example.musicappui.Screen
+import com.example.musicappui.screenInBottom
 import com.example.musicappui.screenInDrawer
 import com.example.musicappui.ui.theme.AccountDialog
 import kotlinx.coroutines.CoroutineScope
@@ -57,11 +61,33 @@ fun MainView() {
     val navController: NavHostController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val title = remember{
+    val title = remember {
         mutableStateOf(currentScreen.title)
     }
-    val dialogOpen = remember{
+    val dialogOpen = remember {
         mutableStateOf(false)
+    }
+
+    val bottomBar: @Composable () -> Unit = {
+        if (currentScreen is Screen.DrawScreen || currentScreen == Screen.BottomScreen.Home) {
+            BottomNavigation(modifier = Modifier.wrapContentSize()) {
+                screenInBottom.forEach {
+                    BottomNavigationItem(
+                        selected = (currentRoute == it.bTitle),
+                        onClick = { navController.navigate(it.bRoute) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = it.icon),
+                                contentDescription = it.bTitle
+                            )
+                        },
+                        label = { Text(text = it.bTitle) },
+                        selectedContentColor = Color.White,
+                        unselectedContentColor = Color.Black
+                    )
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -79,6 +105,8 @@ fun MainView() {
                 }
             )
         },
+        bottomBar = bottomBar
+        ,
         scaffoldState = scaffoldState,
         drawerContent = {
             LazyColumn(modifier = Modifier.padding(16.dp)) {
@@ -89,10 +117,10 @@ fun MainView() {
                             scope.launch {
                                 scaffoldState.drawerState.close()
                             }
-                            if (it.route == Screen.DrawScreen.AddAccount.route){
+                            if (it.route == Screen.DrawScreen.AddAccount.route) {
                                 //show dialog
                                 dialogOpen.value = true
-                            }else{
+                            } else {
                                 navController.navigate(it.route)
                                 title.value = it.dTitle
                             }

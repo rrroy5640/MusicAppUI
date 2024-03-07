@@ -27,7 +27,7 @@ fun Subscription() {
     ) {
         Text(text = "Manage Subscription")
         Card(modifier = Modifier.padding(8.dp), elevation = 4.dp) {
-            Column(modifier = Modifier.padding(16.dp),) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "Musical")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
